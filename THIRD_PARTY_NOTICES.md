@@ -11,4 +11,4 @@ The Windows build copies both files to `.native/highs/share/doc/HIGHS`. The Dock
 
 Both builds explicitly disable HiPO and the HiGHS command-line executable. HiPO's optional dependencies include additional licenses; see upstream notices before changing build options. Do not assume this wrapper's MIT license covers every possible HiGHS configuration.
 
-If you redistribute native binaries, retain applicable HiGHS notices and comply with the licenses of compiler runtime libraries and other dependencies you include. Toolchains are installed separately; this project does not supply a Windows DLL bundle.
+If you redistribute native binaries, retain applicable HiGHS notices and comply with the licenses of compiler runtime libraries and other dependencies you include. Toolchains are installed separately. `scripts/bundle-windows.ps1` creates a local application bundle and copies the HiGHS, wrapper, and toolchain notices into its `licenses` directory; supply notices for any additional application dependencies yourself.

@@ -23,33 +23,46 @@ Requires **Go 1.26+**, **cgo**, a compatible C compiler, and **HiGHS v1.15.1** h
 
 ### Windows x64
 
-Use a MinGW toolchain for both HiGHS and Go. For a HiGHS installation under `C:/highs` and MSYS2 UCRT64 under `C:/msys64`, configure PowerShell:
+Install [Go](https://go.dev/dl/), Git, CMake and [MSYS2](https://www.msys2.org/). In the MSYS2 **UCRT64** terminal, install the compiler once:
 
-```powershell
-$env:CGO_ENABLED = '1'
-$env:CC = 'gcc.exe'
-$env:CXX = 'g++.exe'
-$env:CGO_CFLAGS = '-IC:/highs/include/highs'
-$env:CGO_LDFLAGS = '-LC:/highs/lib'
-$env:PATH = "C:\highs\bin;C:\msys64\ucrt64\bin;$env:PATH"
+```sh
+pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make
 ```
 
-HiGHS supplies the headers, `lib/libhighs.dll.a` import library, and DLL in `bin`. The HiGHS and MinGW runtime DLLs must remain available when running the application.
+Keep a checkout of this repository for the native dependencies and helpers. From your **application's directory** in PowerShell, run:
 
-The repository includes scripts to build the pinned HiGHS release and configure a PowerShell session. See [Windows development setup](CONTRIBUTING.md#windows-development) for the source build instructions.
+```powershell
+& C:/src/highs-go/scripts/setup.ps1
+code ./highs-go.code-workspace
+```
 
-### Linux
+Replace `C:/src/highs-go` with your checkout. Setup builds HiGHS if needed, checks a real solve, and configures both VS Code's Go tools and new integrated terminals. Open this workspace on subsequent visits; no repeated environment commands are needed. Add `highs-go.code-workspace` to your application's `.gitignore` because it contains local paths.
 
-For a HiGHS installation under `/opt/highs`:
+Compiler discovery uses `PATH`, then `C:/msys64/ucrt64/bin`. Use `-ToolchainBin C:/path/to/mingw/bin` to override it, or `-HighsRoot C:/highs` for an existing compatible installation. Rerun setup if you move either installation. For another editor or an external terminal, use `. C:/src/highs-go/scripts/enter-dev.ps1` to configure that session.
+
+### Linux / macOS
+
+Install a C compiler, `pkg-config`, and compatible HiGHS headers/shared libraries. The wrapper discovers build flags through HiGHS's `highs.pc`. For a custom installation under `/opt/highs`:
 
 ```sh
 export CGO_ENABLED=1
-export CGO_CFLAGS='-I/opt/highs/include/highs'
-export CGO_LDFLAGS='-L/opt/highs/lib'
-export LD_LIBRARY_PATH="/opt/highs/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PKG_CONFIG_PATH="/opt/highs/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 ```
 
-Adjust paths to match the installation. The [Dockerfile](Dockerfile) provides a complete build using the pinned HiGHS source release.
+Standard pkg-config search locations need no override. The shared library must also be discoverable by the OS loader; for a custom Linux installation, set `LD_LIBRARY_PATH=/opt/highs/lib` or configure the loader. The [Dockerfile](Dockerfile) provides a tested Linux build and runtime image. macOS discovery is supported through pkg-config but is not currently tested in CI.
+
+### Giving an application to end users
+
+On Windows, build your application from the configured terminal and bundle it:
+
+```powershell
+go build -o app.exe .
+& C:/src/highs-go/scripts/bundle-windows.ps1 -Executable ./app.exe -Destination ./dist/my-app
+```
+
+Use a new destination directory. The helper copies the executable, its imported non-system DLLs (including transitive dependencies), and HiGHS/Go-wrapper/toolchain notices. Pass the same `-ToolchainBin` and `-HighsRoot` overrides if you used them during setup. Additional application DLLs must be beside the source executable; add your own assets and applicable notices separately. Libraries loaded dynamically at runtime are not detected.
+
+Zip and distribute the **whole folder**. End users extract it and run your executable; they need neither Go, a compiler, nor environment variables. A command-line application's UI remains your application's responsibility. For Linux deployment, the supplied Docker runtime image includes HiGHS and its runtime dependencies.
 
 ## Usage
 

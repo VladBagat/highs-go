@@ -40,6 +40,10 @@ Use the same toolchain for HiGHS and Go. If you change compilers, use a fresh `.
 
 ### 3. Configure the terminal and run
 
+For VS Code, run `./scripts/setup.ps1` once and open the generated `highs-go.code-workspace`. It configures Go diagnostics and new terminals and reuses the HiGHS build above. The same helper works from a consuming application's directory. See [installation and application distribution](README.md#installation).
+
+For a standalone PowerShell terminal:
+
 ```powershell
 . ./scripts/enter-dev.ps1
 go test -count=1 ./...
@@ -65,7 +69,13 @@ go build -o highs-example.exe ./cmd/example
 ./highs-example.exe
 ```
 
-The executable still needs the HiGHS DLL and its MinGW runtime dependencies. Running from the configured terminal supplies those through `PATH`. When distributing the executable, include its required DLLs and their license notices.
+To distribute it without requiring environment setup on the target machine:
+
+```powershell
+./scripts/bundle-windows.ps1 -Executable ./highs-example.exe -Destination ./dist/highs-example
+```
+
+Distribute the entire folder. `./scripts/test-consumption.ps1` checks a separate consumer module and runs its bundle with only Windows directories on `PATH`; Windows CI runs this check too.
 
 If PowerShell blocks local scripts, review them and use `Set-ExecutionPolicy -Scope Process Bypass` for that terminal only, where your machine's policy allows it.
 

@@ -36,6 +36,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go run ./cmd/example
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./scripts/test-consumption.ps1 -ToolchainBin $toolchain
   linux:
     runs-on: ubuntu-latest
     steps:

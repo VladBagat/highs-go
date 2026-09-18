@@ -2,7 +2,7 @@
 FROM golang:1.26-bookworm AS highs-build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    cmake ninja-build git g++ \
+    cmake ninja-build git g++ pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 ARG HIGHS_VERSION=v1.15.1
@@ -22,8 +22,7 @@ COPY go.mod ./
 RUN go mod download
 COPY . .
 ENV CGO_ENABLED=1 \
-    CGO_CFLAGS=-I/opt/highs/include/highs \
-    CGO_LDFLAGS=-L/opt/highs/lib \
+    PKG_CONFIG_PATH=/opt/highs/lib/pkgconfig \
     LD_LIBRARY_PATH=/opt/highs/lib
 RUN --mount=type=cache,target=/root/.cache/go-build go test -count=1 ./...
 RUN --mount=type=cache,target=/root/.cache/go-build go build -o /out/highs-example ./cmd/example

@@ -1,10 +1,11 @@
 # Build the same pinned HiGHS release as the Dockerfile, using native MinGW.
 [CmdletBinding()]
 param(
-    [string]$ToolchainBin = 'C:\msys64\ucrt64\bin',
+    [string]$ToolchainBin,
     [ValidateRange(1, 128)][int]$Jobs = 4
 )
 $ErrorActionPreference = 'Stop'
+$ToolchainBin = & "$PSScriptRoot/find-toolchain.ps1" -ToolchainBin $ToolchainBin
 $repo = Split-Path $PSScriptRoot -Parent
 $nativeRoot = Join-Path $repo '.native'
 $source = Join-Path $nativeRoot 'src'

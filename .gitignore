@@ -3,4 +3,5 @@
 *.exe
 *.test
 coverage.out
-
+highs-go.code-workspace
+dist/

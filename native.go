@@ -1,7 +1,8 @@
 package highs
 
 /*
-#cgo LDFLAGS: -lhighs -lstdc++
+#cgo windows LDFLAGS: -lhighs -lstdc++
+#cgo !windows pkg-config: highs
 #include <stdlib.h>
 #include "interfaces/highs_c_api.h"
 // HiGHS declares these as static const variables; cgo cannot link to them

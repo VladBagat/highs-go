@@ -1,9 +1,10 @@
 # Dot-source this script to configure only the current PowerShell session.
 [CmdletBinding()]
 param(
-    [string]$ToolchainBin = 'C:\msys64\ucrt64\bin',
+    [string]$ToolchainBin,
     [string]$HighsRoot = (Join-Path (Split-Path $PSScriptRoot -Parent) '.native/highs')
 )
+$ToolchainBin = & "$PSScriptRoot/find-toolchain.ps1" -ToolchainBin $ToolchainBin
 foreach ($tool in @('gcc.exe', 'g++.exe')) {
     if (!(Test-Path (Join-Path $ToolchainBin $tool))) { throw "Missing $tool in $ToolchainBin." }
 }
