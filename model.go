@@ -5,6 +5,7 @@ package highs
 import (
 	"fmt"
 	"math"
+	"time"
 )
 
 // Sense selects the direction of optimization. The zero value minimizes.
@@ -62,9 +63,12 @@ const (
 	Unbounded             Status = "unbounded"
 	UnboundedOrInfeasible Status = "unbounded_or_infeasible"
 	Other                 Status = "other"
+	TimeLimit             Status = "time_limit"
+	IterationLimit        Status = "iteration_limit"
+	Interrupted           Status = "interrupted"
 )
 
-// Result contains a solver status. Numeric results are populated only for
+// Result contains a solver status and statistics. Solution values are populated only for
 // Optimal; their indices match the order of AddVariable and AddConstraint calls.
 type Result struct {
 	Status        Status
@@ -74,19 +78,65 @@ type Result struct {
 	ReducedCosts  []float64
 	RowActivities []float64
 	RowDuals      []float64
+	Statistics    SolveStatistics
+}
+
+// SolveStatistics describes native solver work, excluding Go validation and packing.
+type SolveStatistics struct {
+	RunTime time.Duration
+	// IterationsAvailable is false when native iteration information is unavailable.
+	// In that case all iteration counts are zero.
+	IterationsAvailable bool
+	SimplexIterations   int
+	IPMIterations       int
+	CrossoverIterations int
+	PDLPIterations      int
 }
 
 // Solve validates the model, solves it with a fresh HiGHS instance, and returns
 // a result. Infeasible and unbounded models return a status, not an error.
 func (m *Model) Solve() (*Result, error) {
+	return m.SolveWithOptions(SolveOptions{})
+}
+
+// SolveOptions controls a single solve. Its zero value preserves Solve defaults.
+type SolveOptions struct {
+	// TimeLimit limits native solver time, not the whole Go call. Zero is unlimited.
+	TimeLimit time.Duration
+	// Log receives native messages, including their original newlines. Nil is silent.
+	// Calls are serialized within a solve and run synchronously on native callback
+	// threads. The callback must not re-enter this library and should return promptly.
+	// A callback shared between solves must provide its own synchronization.
+	// Panics are re-raised after native execution and cleanup have completed.
+	Log func(LogLevel, string)
+}
+
+// LogLevel identifies the severity of a native log message.
+type LogLevel uint8
+
+const (
+	LogUnknown LogLevel = iota
+	LogInfo
+	LogDetailed
+	LogVerbose
+	LogWarning
+	LogError
+)
+
+// SolveWithOptions validates and solves the model with a fresh native solver.
+// Reaching a solver limit returns a result status, not an error.
+func (m *Model) SolveWithOptions(opts SolveOptions) (*Result, error) {
 	if m == nil {
 		return nil, fmt.Errorf("nil model")
+	}
+	if opts.TimeLimit < 0 {
+		return nil, fmt.Errorf("time limit must not be negative")
 	}
 	p, err := m.pack(1e30) // HiGHS v1.15.1's finite infinity threshold.
 	if err != nil {
 		return nil, err
 	}
-	return solveNative(m.Sense, m.Offset, p)
+	return solveNative(m.Sense, m.Offset, p, opts)
 }
 
 type packedModel struct {

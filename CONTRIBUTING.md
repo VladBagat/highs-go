@@ -53,10 +53,10 @@ go run ./cmd/example
 
 The leading dot and space on the first line are intentional. If you selected another compiler, pass the same `-ToolchainBin` to `enter-dev.ps1`.
 
-Expected example output:
+The example shows logging, a time limit, native version, termination handling and solve statistics. Its solution output includes:
 
 ```text
-status=optimal
+status=optimal native_status=7
 objective=2 x=4 y=2
 ```
 

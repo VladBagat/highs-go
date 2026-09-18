@@ -11,7 +11,7 @@ Built primarily for personal use, with AI-assisted development and AI-generated 
 - Equality, one-sided, and ranged linear constraints.
 - Solver status, objective value, primal values, reduced costs, row activities, and row duals.
 
-The API covers batch LP solving through the HiGHS C interface. Each solve creates and releases a native solver, with console output disabled. Integer and quadratic programming, solver configuration, callbacks, and warm starts are outside the current scope.
+The API covers batch LP solving through the HiGHS C interface, with optional time limits and logging. Each solve creates and releases a native solver, with console output disabled. Integer and quadratic programming, algorithm tuning, cancellation, and warm starts are outside the current scope.
 
 ## Installation
 
@@ -99,6 +99,30 @@ func main() {
 }
 ```
 
+### Solve controls and diagnostics
+
+Use `Solve()` for quiet, unlimited solves, or supply options (with `time` and `log` imported):
+
+```go
+result, err := m.SolveWithOptions(highs.SolveOptions{
+    TimeLimit: 5 * time.Second,
+    Log: func(level highs.LogLevel, message string) {
+        log.Printf("HiGHS [%d]: %s", level, message)
+    },
+})
+if err != nil {
+    return err
+}
+fmt.Printf("HiGHS %s: %s in %s\n",
+    highs.NativeVersion(), result.Status, result.Statistics.RunTime)
+```
+
+A zero time limit is unlimited; negative limits are rejected. Limits are cooperative native solver limits, not hard deadlines for the whole Go call. `TimeLimit`, `IterationLimit`, and `Interrupted` are termination statuses, not errors. Solution values remain available only for `Optimal`.
+
+`Statistics.RunTime` excludes Go validation and model packing. Simplex, IPM, crossover and PDLP iteration counts are available when `IterationsAvailable` is true; otherwise all counts are zero. Presolve can finish a model with zero iterations.
+
+Logging is disabled unless `Log` is supplied. Messages retain native text and newlines, with `LogInfo`, `LogDetailed`, `LogVerbose`, `LogWarning`, `LogError`, or `LogUnknown` severity. Callbacks are serialized within each solve, execute synchronously on native callback threads, and must return promptly without re-entering this library. Synchronize callbacks shared between solves yourself. A callback panic suppresses subsequent callbacks and is re-raised with its original value only after native execution and cleanup finish; it does not immediately stop the solve. No callback occurs after the method returns.
+
 ## API
 
 | API | Purpose |
@@ -108,10 +132,12 @@ func main() {
 | `AddConstraint(lower, upper, terms...)` | Add a bounded linear expression and return its row index. |
 | `Term{Variable, Coefficient}` | Specify a variable's coefficient in a constraint. |
 | `Solve() (*Result, error)` | Validate the model and solve it with a fresh HiGHS instance. |
+| `SolveWithOptions(SolveOptions) (*Result, error)` | Solve with an optional time limit and log callback. |
+| `NativeVersion() string` | Report the loaded HiGHS library version. |
 
 Variable and row indices are zero-based and match result ordering. Use `math.Inf(-1)` and `math.Inf(1)` for open bounds. Costs, coefficients, and the objective offset must be finite. Duplicate variables within a constraint and finite bounds with magnitude at least `1e30` are rejected.
 
-`Result.Status` is `Optimal`, `Infeasible`, `Unbounded`, `UnboundedOrInfeasible`, or `Other`. `NativeStatus` retains the underlying HiGHS status code. Numeric fields—`Objective`, `Values`, `ReducedCosts`, `RowActivities`, and `RowDuals`—are populated only for `Optimal`.
+`Result.Status` is `Optimal`, `Infeasible`, `Unbounded`, `UnboundedOrInfeasible`, `TimeLimit`, `IterationLimit`, `Interrupted`, or `Other`. `NativeStatus` retains the underlying HiGHS status code. Solution fields—`Objective`, `Values`, `ReducedCosts`, `RowActivities`, and `RowDuals`—are populated only for `Optimal`. Statistics are collected for non-optimal outcomes too.
 
 Invalid input and native API failures return Go errors. Infeasible and unbounded outcomes are reported through status. Check status before reading solution values, and compare floating-point results with tolerances. Model mutation requires synchronization with any concurrent solve.
 

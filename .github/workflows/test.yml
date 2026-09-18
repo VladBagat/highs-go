@@ -26,11 +26,14 @@ jobs:
         shell: pwsh
         env:
           MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+          HIGHS_EXPECT_VERSION: '1.15.1'
         run: |
           $toolchain = Join-Path $env:MSYS2_ROOT 'ucrt64/bin'
           & ./scripts/build-highs.ps1 -ToolchainBin $toolchain
           . ./scripts/enter-dev.ps1 -ToolchainBin $toolchain
           go test -count=1 ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go test -race -count=1 ./...
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go vet ./...
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

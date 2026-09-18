@@ -24,7 +24,7 @@ COPY . .
 ENV CGO_ENABLED=1 \
     PKG_CONFIG_PATH=/opt/highs/lib/pkgconfig \
     LD_LIBRARY_PATH=/opt/highs/lib
-RUN --mount=type=cache,target=/root/.cache/go-build go test -count=1 ./...
+RUN --mount=type=cache,target=/root/.cache/go-build HIGHS_EXPECT_VERSION=1.15.1 go test -race -count=1 ./...
 RUN --mount=type=cache,target=/root/.cache/go-build go build -o /out/highs-example ./cmd/example
 
 FROM debian:bookworm-slim AS runtime
