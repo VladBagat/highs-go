@@ -1,0 +1,44 @@
+name: Test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: UCRT64
+          update: true
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make
+      - name: Build HiGHS and test Go wrapper
+        shell: pwsh
+        env:
+          MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          $toolchain = Join-Path $env:MSYS2_ROOT 'ucrt64/bin'
+          & ./scripts/build-highs.ps1 -ToolchainBin $toolchain
+          . ./scripts/enter-dev.ps1 -ToolchainBin $toolchain
+          go test -count=1 ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go run ./cmd/example
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t highs-go-test .
+      - run: docker run --rm highs-go-test

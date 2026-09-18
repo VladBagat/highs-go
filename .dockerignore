@@ -1,0 +1,8 @@
+.git
+.idea
+.DS_Store
+*.exe
+*.test
+docs/
+REPORT.md
+.native

@@ -1,0 +1,6 @@
+.native/
+.idea/
+*.exe
+*.test
+coverage.out
+
