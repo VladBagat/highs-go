@@ -1,8 +1,39 @@
 name: Test
 on:
   push:
+    branches: [main]
+    paths:
+      - '**.go'
+      - '**.c'
+      - '**.h'
+      - '**.cc'
+      - '**.cpp'
+      - go.mod
+      - go.sum
+      - scripts/**
+      - testdata/**
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/**
   pull_request:
+    paths:
+      - '**.go'
+      - '**.c'
+      - '**.h'
+      - '**.cc'
+      - '**.cpp'
+      - go.mod
+      - go.sum
+      - scripts/**
+      - testdata/**
+      - Dockerfile
+      - .dockerignore
+      - .github/workflows/**
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
