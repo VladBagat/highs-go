@@ -89,6 +89,23 @@ If PowerShell blocks local scripts, review them and use `Set-ExecutionPolicy -Sc
 | DLL missing or exit code `0xc0000135` | Run from the configured terminal; both HiGHS and MinGW runtime DLL directories must be on `PATH`. |
 | CMake generator/compiler mismatch | Start with a fresh `.native/build` directory after switching toolchains. |
 
+## Linux and macOS development
+
+Install the [platform prerequisites](README.md#automatic-mode), then run from this checkout:
+
+```sh
+bash ./scripts/setup.sh
+# Open highs-go.code-workspace in VS Code, or configure this Bash/Zsh session:
+source ./scripts/enter-dev.sh
+HIGHS_EXPECT_VERSION=1.15.1 go test -race -count=1 ./...
+go vet ./...
+python3 ./scripts/test-consumption.py
+```
+
+Setup builds the pinned HiGHS release under `.native/` and configures both Go tools and integrated terminals. For separate build and environment steps, see [manual compilation](README.md#manual-compilation). The consumer check creates a temporary application, reruns setup to check workspace preservation, builds using both generated environments, and runs the executable without loader environment variables. Native CI runs these checks on Linux and macOS.
+
+`enter-dev.sh` supports Bash and Zsh. It preserves shell options, prepends the installation's pkg-config directory, and appends a runtime search path to existing `CGO_LDFLAGS`. Set `CC` and `CXX` before building to select compilers; use a fresh `.native/build` directory if changing toolchains or architectures. Rerun setup after moving the checkout or installation. Local runtime paths are for development; they do not make a distributable application bundle.
+
 ## Linux / Docker
 
 From the repository root:
@@ -112,7 +129,7 @@ go run ./cmd/example
 
 Tests exercise real HiGHS solves, including expected primal and dual results, maximization, equality constraints, infeasible and unbounded models, empty rows, input validation, and sparse matrix packing. Add tests for changes to the exposed behavior and compare numerical results with tolerances.
 
-Format Go changes with `gofmt`. Keep the public API and its documentation consistent. GitHub Actions builds Windows x64 with MSYS2 UCRT64 and Linux through Docker.
+Format Go changes with `gofmt`. Keep the public API and its documentation consistent. GitHub Actions builds Windows x64 with MSYS2 UCRT64, native Linux and macOS, and Linux through Docker.
 
 ## Testing a local dependency
 
@@ -123,4 +140,4 @@ go mod edit '-require=github.com/VladBagat/highs-go@v0.0.0'
 go mod edit '-replace=github.com/VladBagat/highs-go=C:/src/highs-go'
 ```
 
-Adjust the checkout path and configure the native environment in the same terminal before building. On Windows, dot-source the checkout's `scripts/enter-dev.ps1`, passing `-ToolchainBin` if needed. Remove the local replacement before testing a published version.
+Adjust the checkout path and configure the native environment in the same terminal before building. On Windows, dot-source the checkout's `scripts/enter-dev.ps1`, passing `-ToolchainBin` if needed. On Linux/macOS, source the checkout's `scripts/enter-dev.sh`, passing `--highs-root` if needed. Remove the local replacement before testing a published version.

@@ -77,3 +77,31 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -t highs-go-test .
       - run: docker run --rm highs-go-test
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install Linux prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake pkg-config python3 zsh
+      - name: Install macOS prerequisites
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config python
+      - name: Verify workspace setup and separate consumer
+        run: python3 scripts/test-consumption.py
+      - name: Test Go wrapper
+        shell: bash
+        env:
+          HIGHS_EXPECT_VERSION: '1.15.1'
+        run: |
+          source ./scripts/enter-dev.sh
+          go test -race -count=1 ./...
+          go vet ./...
